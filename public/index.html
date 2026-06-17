@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoMotion - Estabilizador de Vídeo Avançado</title>
+    <meta name="description" content="Estabilize seus vídeos tremidos com inteligência e técnicas avançadas de estabilização profissional.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-elements">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <h1 class="logo">No<span>Motion</span></h1>
+            <p class="subtitle">Deixe seus vídeos perfeitamente lisos em segundos.</p>
+        </header>
+
+        <section class="upload-section" id="uploadSection">
+            <!-- Quality Profile Selector -->
+            <div class="profile-selector" id="profileSelector">
+                <p class="profile-label">Perfil de Qualidade</p>
+                <div class="profile-cards">
+                    <label class="profile-card" data-profile="fast">
+                        <input type="radio" name="quality" value="fast" hidden>
+                        <div class="profile-icon">⚡</div>
+                        <div class="profile-name">Rápido</div>
+                        <div class="profile-desc">Preview rápido, menor qualidade</div>
+                        <div class="profile-badge">~1x</div>
+                    </label>
+                    <label class="profile-card" data-profile="balanced">
+                        <input type="radio" name="quality" value="balanced" hidden>
+                        <div class="profile-icon">⚖️</div>
+                        <div class="profile-name">Balanceado</div>
+                        <div class="profile-desc">Bom equilíbrio velocidade/qualidade</div>
+                        <div class="profile-badge">~2x</div>
+                    </label>
+                    <label class="profile-card selected" data-profile="max">
+                        <input type="radio" name="quality" value="max" hidden checked>
+                        <div class="profile-icon">🎬</div>
+                        <div class="profile-name">Máximo</div>
+                        <div class="profile-desc">Cinema-grade, melhor resultado</div>
+                        <div class="profile-badge">~4x</div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Drop Zone -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span class="drop-text">Arraste seu vídeo ou <strong>clique aqui</strong></span>
+                    <span class="drop-hint">MP4, MOV, WebM (Max 500MB)</span>
+                </div>
+                <input type="file" id="fileInput" accept="video/*" hidden>
+            </div>
+
+            <!-- Progress Container -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-header">
+                    <div class="progress-step" id="progressStep">Passo 1 de 2</div>
+                    <div class="progress-percent" id="progressPercent">0%</div>
+                </div>
+                <div class="status-text" id="statusText">Enviando vídeo...</div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+                <div class="progress-meta">
+                    <span class="status-subtext" id="statusSubtext">Aguarde...</span>
+                    <span class="progress-eta" id="progressEta"></span>
+                </div>
+                <div class="progress-stats" id="progressStats" style="display: none;">
+                    <div class="stat">
+                        <span class="stat-label">Velocidade</span>
+                        <span class="stat-value" id="statSpeed">—</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">FPS</span>
+                        <span class="stat-value" id="statFps">—</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Tempo restante</span>
+                        <span class="stat-value" id="statEta">—</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="result-section" id="resultSection" style="display: none;">
+            <div class="result-header">
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <h2>Estabilização Completa!</h2>
+            </div>
+            <div class="players-container">
+                <div class="player-box">
+                    <span class="badge">Original</span>
+                    <video id="originalVideo" controls loop playsinline></video>
+                </div>
+                <div class="player-box">
+                    <span class="badge badge-success">Estabilizado</span>
+                    <video id="stabilizedVideo" controls loop playsinline></video>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="btnDownload">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Baixar Vídeo
+                </button>
+                <button class="btn btn-secondary" id="btnNew">Estabilizar Outro</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

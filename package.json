@@ -1,0 +1,15 @@
+{
+  "name": "nomotion",
+  "version": "1.0.0",
+  "description": "Video stabilizer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "express": "^5.2.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "multer": "^2.2.0"
+  }
+}
