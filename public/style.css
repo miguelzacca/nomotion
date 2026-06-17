@@ -1,14 +1,17 @@
 :root {
-    --bg-color: #0b0f19;
-    --surface: rgba(20, 25, 40, 0.6);
-    --surface-hover: rgba(30, 38, 56, 0.8);
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.2);
+    --bg-color: #0a0e1a;
+    --surface: rgba(16, 20, 35, 0.7);
+    --surface-hover: rgba(25, 32, 52, 0.85);
+    --border: rgba(255, 255, 255, 0.07);
+    --border-hover: rgba(255, 255, 255, 0.18);
     --primary: #6366f1;
-    --primary-glow: rgba(99, 102, 241, 0.5);
+    --primary-light: #818cf8;
+    --primary-glow: rgba(99, 102, 241, 0.4);
     --success: #10b981;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
+    --success-glow: rgba(16, 185, 129, 0.3);
+    --error: #ef4444;
+    --text-main: #f1f5f9;
+    --text-muted: #8892a8;
     --font-family: 'Outfit', sans-serif;
 }
 
@@ -30,40 +33,55 @@ body {
     position: relative;
 }
 
-/* Background Animated Orbs */
+/* ============================================================
+   Background Animated Orbs
+   ============================================================ */
 .background-elements {
-    position: absolute;
+    position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: -1;
     overflow: hidden;
+    pointer-events: none;
 }
 
 .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.5;
-    animation: float 20s infinite ease-in-out alternate;
+    filter: blur(120px);
+    opacity: 0.45;
+    animation: float 25s infinite ease-in-out alternate;
 }
 
 .orb-1 {
-    top: -10%; left: -10%;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(99,102,241,0.4) 0%, rgba(0,0,0,0) 70%);
+    top: -15%; left: -10%;
+    width: 550px; height: 550px;
+    background: radial-gradient(circle, rgba(99,102,241,0.45) 0%, transparent 70%);
 }
 
 .orb-2 {
-    bottom: -10%; right: -10%;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(16,185,129,0.25) 0%, rgba(0,0,0,0) 70%);
-    animation-delay: -5s;
+    bottom: -15%; right: -10%;
+    width: 650px; height: 650px;
+    background: radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%);
+    animation-delay: -8s;
+}
+
+.orb-3 {
+    top: 40%; right: 20%;
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(236,72,153,0.2) 0%, transparent 70%);
+    animation-delay: -15s;
+    animation-duration: 30s;
 }
 
 @keyframes float {
     0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(50px, 50px) scale(1.1); }
+    50% { transform: translate(30px, -20px) scale(1.05); }
+    100% { transform: translate(-20px, 40px) scale(1.1); }
 }
 
+/* ============================================================
+   Container & Header
+   ============================================================ */
 .container {
     width: 100%;
     max-width: 1000px;
@@ -73,18 +91,25 @@ body {
 
 header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
 }
 
 .logo {
-    font-size: 3rem;
+    font-size: 3.2rem;
     font-weight: 800;
-    letter-spacing: -1px;
+    letter-spacing: -1.5px;
     margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--text-main) 0%, #c7d2e0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .logo span {
-    color: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .subtitle {
@@ -93,38 +118,149 @@ header {
     font-weight: 300;
 }
 
-/* Glassmorphism Section */
+/* ============================================================
+   Glassmorphism Sections
+   ============================================================ */
 section {
     background: var(--surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: 24px;
-    padding: 3rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    padding: 2.5rem;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition: all 0.4s ease;
 }
 
-/* Upload Area */
+/* ============================================================
+   Profile Selector
+   ============================================================ */
+.profile-selector {
+    margin-bottom: 1.5rem;
+}
+
+.profile-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.75rem;
+}
+
+.profile-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.profile-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    overflow: hidden;
+}
+
+.profile-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.profile-card:hover {
+    border-color: rgba(99,102,241,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(99,102,241,0.15);
+}
+
+.profile-card:hover::before {
+    opacity: 1;
+}
+
+.profile-card.selected {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.08);
+    box-shadow: 0 0 0 1px var(--primary), 0 8px 30px -8px var(--primary-glow);
+}
+
+.profile-card.selected::before {
+    opacity: 1;
+}
+
+.profile-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.profile-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    z-index: 1;
+}
+
+.profile-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+    position: relative;
+    z-index: 1;
+}
+
+.profile-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+}
+
+.profile-card.selected .profile-badge {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--primary-light);
+}
+
+/* ============================================================
+   Drop Zone
+   ============================================================ */
 .drop-zone {
     border: 2px dashed var(--border);
     border-radius: 16px;
-    padding: 4rem 2rem;
+    padding: 3.5rem 2rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .drop-zone:hover, .drop-zone.dragover {
     border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(99, 102, 241, 0.04);
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px -10px var(--primary-glow);
+    box-shadow: 0 10px 35px -10px var(--primary-glow);
 }
 
 .upload-icon {
@@ -140,84 +276,220 @@ section {
 }
 
 .drop-text {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 400;
     margin-bottom: 0.5rem;
     display: block;
 }
 
 .drop-text strong {
-    color: var(--primary);
+    color: var(--primary-light);
 }
 
 .drop-hint {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
-/* Progress Area */
+/* ============================================================
+   Progress Area
+   ============================================================ */
 .progress-container {
     text-align: center;
     padding: 2rem 0;
     animation: fadeIn 0.5s ease;
 }
 
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.progress-step {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--primary-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.progress-percent {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+}
+
 .status-text {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 600;
     margin-bottom: 1rem;
 }
 
 .progress-bar-bg {
     width: 100%;
-    height: 8px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 4px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     position: relative;
 }
 
 .progress-bar-fill {
     width: 0%;
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), #818cf8);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    box-shadow: 0 0 10px var(--primary-glow);
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 12px var(--primary-glow);
+    position: relative;
 }
 
-/* Indeterminate Loading State Animation */
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: barShine 2s infinite;
+}
+
+@keyframes barShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Indeterminate shimmer */
 .progress-bar-fill.processing {
-    width: 30%;
+    width: 100% !important;
+    background: linear-gradient(90deg,
+        var(--primary) 0%,
+        var(--primary-light) 25%,
+        var(--primary) 50%,
+        var(--primary-light) 75%,
+        var(--primary) 100%
+    );
+    background-size: 200% 100%;
     animation: shimmer 1.5s infinite linear;
 }
 
 @keyframes shimmer {
-    0% { transform: translateX(-100%); width: 30%; }
-    100% { transform: translateX(400%); width: 30%; }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Done state */
+.progress-bar-fill.done {
+    background: linear-gradient(90deg, var(--success), #34d399);
+    box-shadow: 0 0 15px var(--success-glow);
+}
+
+.progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
 }
 
 .status-subtext {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
-/* Results Area */
+.progress-eta {
+    color: var(--primary-light);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Stats Row */
+.progress-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Results Area
+   ============================================================ */
+.result-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.6s ease;
+}
+
+.result-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.check-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--success);
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 .players-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .player-box {
     position: relative;
     background: #000;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     border: 1px solid var(--border);
     aspect-ratio: 16/9;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.player-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.5);
 }
 
 .player-box video {
@@ -228,25 +500,28 @@ section {
 
 .badge {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-    padding: 0.25rem 0.75rem;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    padding: 0.2rem 0.65rem;
     border-radius: 20px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 10;
+    letter-spacing: 0.3px;
 }
 
 .badge-success {
     background: rgba(16, 185, 129, 0.2);
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: rgba(16, 185, 129, 0.35);
     color: #34d399;
 }
 
-/* Actions */
+/* ============================================================
+   Action Buttons
+   ============================================================ */
 .actions {
     display: flex;
     gap: 1rem;
@@ -255,49 +530,153 @@ section {
 
 .btn {
     padding: 0.75rem 2rem;
-    border-radius: 8px;
+    border-radius: 10px;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
     color: white;
-    box-shadow: 0 4px 15px var(--primary-glow);
+    box-shadow: 0 4px 18px var(--primary-glow);
 }
 
 .btn-primary:hover {
-    background: #4f46e5;
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--primary-glow);
+    box-shadow: 0 8px 25px var(--primary-glow);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-secondary {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.04);
     color: var(--text-main);
     border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.08);
     border-color: var(--border-hover);
+    transform: translateY(-1px);
 }
 
+/* ============================================================
+   Toast Notifications
+   ============================================================ */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 0.85rem 1.5rem;
+    border-radius: 12px;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    max-width: 90%;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.toast-info {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary-light);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* ============================================================
+   Responsive
+   ============================================================ */
 @media (max-width: 768px) {
     .players-container {
         grid-template-columns: 1fr;
     }
-    
+
+    .profile-cards {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .profile-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: left;
+        padding: 0.85rem 1rem;
+    }
+
+    .profile-icon {
+        font-size: 1.4rem;
+        margin-bottom: 0;
+    }
+
+    .profile-desc {
+        display: none;
+    }
+
+    .profile-badge {
+        margin-top: 0;
+        margin-left: auto;
+    }
+
     section {
-        padding: 2rem 1.5rem;
+        padding: 1.75rem 1.25rem;
+    }
+
+    .progress-stats {
+        gap: 1rem;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        font-size: 2.4rem;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .drop-zone {
+        padding: 2.5rem 1.5rem;
     }
 }
