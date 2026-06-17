@@ -4,7 +4,8 @@
   "description": "Video stabilizer",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "stop": "taskkill /f /im node.exe"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
