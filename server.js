@@ -5,6 +5,7 @@ const fs = require('fs');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 const ffmpeg = require('fluent-ffmpeg');
+const { spawn } = require('child_process');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
@@ -157,16 +158,13 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   }
 
   const profileKey = req.body.quality || 'max';
-  const profile = PROFILES[profileKey] || PROFILES.max;
-  const passes = profile.passes || 1;
-  const totalSteps = passes * 2 + (profile.fps60 ? 1 : 0);
-
+  
   const inputPath = req.file.path;
   const filename = path.basename(inputPath);
   const outputPath = path.join(processedDir, filename);
   const jobId = path.parse(filename).name;
 
-  console.log(`[${jobId}] Iniciando estabilização | Perfil: ${profileKey} | Passes: ${passes} | Arquivo: ${req.file.originalname}`);
+  console.log(`[${jobId}] Iniciando estabilização | Perfil: ${profileKey} | Arquivo: ${req.file.originalname}`);
 
   let totalDuration = 0;
   try {
@@ -178,6 +176,66 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
 
   // Send jobId immediately so client can connect to SSE
   res.json({ jobId, status: 'processing' });
+
+  // ============================================================
+  // GYROFLOW PATH
+  // ============================================================
+  if (profileKey === 'gyroflow') {
+    const gyroflowPath = path.join(__dirname, 'gyroflow-cli.exe');
+    if (!fs.existsSync(gyroflowPath)) {
+      console.error(`[${jobId}] Gyroflow CLI não encontrado.`);
+      sendProgress(jobId, { stage: 'error', error: 'Executável do Gyroflow não encontrado no servidor. Baixe o gyroflow-cli.exe.' });
+      cleanup(inputPath);
+      return;
+    }
+
+    sendProgress(jobId, { stage: 'detecting', percent: 0, step: 1, totalSteps: 1, pass: 1, totalPasses: 1 });
+
+    const gyroProcess = spawn(gyroflowPath, [inputPath, '--output', outputPath]);
+    let lastPercent = 0;
+
+    const parseGyroOutput = (data) => {
+      const output = data.toString();
+      // Gyroflow outputs percentage like [ 12.5%] or [100.0%]
+      const match = output.match(/\[\s*([\d.]+)%\]/);
+      if (match) {
+        const percent = parseFloat(match[1]);
+        if (percent > lastPercent + 1 || percent === 100) {
+           lastPercent = percent;
+           sendProgress(jobId, { stage: 'transforming', percent: Math.round(percent), step: 1, totalSteps: 1 });
+        }
+      }
+    };
+
+    gyroProcess.stdout.on('data', parseGyroOutput);
+    gyroProcess.stderr.on('data', parseGyroOutput);
+
+    gyroProcess.on('close', (code) => {
+      if (code === 0 && fs.existsSync(outputPath)) {
+        console.log(`[${jobId}] Gyroflow completo!`);
+        sendProgress(jobId, {
+          stage: 'done',
+          percent: 100,
+          url: `/processed/${filename}`,
+          originalName: req.file.originalname
+        });
+        cleanup(inputPath);
+      } else {
+        console.error(`[${jobId}] Erro no Gyroflow, código de saída: ${code}`);
+        sendProgress(jobId, { stage: 'error', error: 'Falha no Gyroflow. Verifique se o vídeo possui metadados de giroscópio ou instale a versão mais recente do CLI.' });
+        cleanup(inputPath);
+      }
+    });
+
+    return;
+  }
+
+  // ============================================================
+  // FFMPEG PATH
+  // ============================================================
+  const profile = PROFILES[profileKey] || PROFILES.max;
+  const passes = profile.passes || 1;
+  const totalSteps = passes * 2 + (profile.fps60 ? 1 : 0);
 
   const d = profile.detect;
   const t = profile.transform;
