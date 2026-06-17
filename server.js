@@ -62,6 +62,14 @@ const PROFILES = {
     encode: { preset: 'slower', crf: 15 },
     passes: 3,
     denoise: true
+  },
+  gimbal: {
+    detect: { stepsize: 2, shakiness: 10, accuracy: 15, mincontrast: 0.05 },
+    transform: { smoothing: 60, interpol: 'bicubic', optzoom: 2, zoomspeed: 0.1, crop: 'black', optalgo: 'gauss' },
+    encode: { preset: 'slower', crf: 15 },
+    passes: 3,
+    denoise: true,
+    fps60: true
   }
 };
 
@@ -174,10 +182,11 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   const d = profile.detect;
   const t = profile.transform;
 
-  // Polish filters: denoise + sharpen on final pass only
-  const finalFilters = profile.denoise
-    ? ',hqdn3d=4:3:6:4.5,unsharp=5:5:0.8:3:3:0.4'
-    : ',unsharp=5:5:0.8:3:3:0.4';
+  // Polish filters: denoise + optical flow 60fps + sharpen on final pass only
+  let finalFilters = '';
+  if (profile.denoise) finalFilters += ',hqdn3d=4:3:6:4.5';
+  if (profile.fps60) finalFilters += ',minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1';
+  finalFilters += ',unsharp=5:5:0.8:3:3:0.4';
 
   const tempFiles = [inputPath];
 
