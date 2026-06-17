@@ -41,22 +41,27 @@ const PROFILES = {
   fast: {
     detect: { stepsize: 16, shakiness: 8, accuracy: 9, mincontrast: 0.3 },
     transform: { smoothing: 10, interpol: 'bilinear', optzoom: 1, zoomspeed: 0.25, crop: 'black', optalgo: 'gauss' },
-    encode: { preset: 'fast', crf: 23 }
+    encode: { preset: 'fast', crf: 23 },
+    passes: 1
   },
   balanced: {
     detect: { stepsize: 6, shakiness: 10, accuracy: 12, mincontrast: 0.25 },
     transform: { smoothing: 20, interpol: 'bicubic', optzoom: 1, zoomspeed: 0.25, crop: 'black', optalgo: 'gauss' },
-    encode: { preset: 'medium', crf: 20 }
+    encode: { preset: 'medium', crf: 20 },
+    passes: 1
   },
   max: {
     detect: { stepsize: 4, shakiness: 10, accuracy: 15, mincontrast: 0.2 },
     transform: { smoothing: 30, interpol: 'bicubic', optzoom: 1, zoomspeed: 0.2, crop: 'black', optalgo: 'gauss' },
-    encode: { preset: 'slow', crf: 18 }
+    encode: { preset: 'slow', crf: 18 },
+    passes: 1
   },
   extreme: {
-    detect: { stepsize: 4, shakiness: 10, accuracy: 15, mincontrast: 0.2 },
-    transform: { smoothing: 90, interpol: 'bicubic', optzoom: 1, zoomspeed: 0.2, crop: 'black', optalgo: 'gauss' },
-    encode: { preset: 'slow', crf: 18 }
+    detect: { stepsize: 2, shakiness: 10, accuracy: 15, mincontrast: 0.05 },
+    transform: { smoothing: 120, interpol: 'bicubic', optzoom: 2, zoomspeed: 0.1, crop: 'black', optalgo: 'gauss' },
+    encode: { preset: 'slower', crf: 15 },
+    passes: 3,
+    denoise: true
   }
 };
 
@@ -136,7 +141,7 @@ function parseProgress(stderrLine, totalDuration) {
 }
 
 // ============================================================
-// Upload + Stabilize endpoint
+// Upload + Stabilize endpoint (supports multi-pass)
 // ============================================================
 app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   if (!req.file) {
@@ -145,18 +150,15 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
 
   const profileKey = req.body.quality || 'max';
   const profile = PROFILES[profileKey] || PROFILES.max;
+  const passes = profile.passes || 1;
+  const totalSteps = passes * 2;
 
   const inputPath = req.file.path;
   const filename = path.basename(inputPath);
   const outputPath = path.join(processedDir, filename);
-  const trfFileName = filename + '.trf';
   const jobId = path.parse(filename).name;
 
-  // No Windows, caminhos absolutos com "C:/" falham dentro de filtros do FFmpeg devido aos dois pontos.
-  const absoluteTrfPath = path.join(uploadDir, trfFileName);
-  const relativeTrfPath = path.relative(process.cwd(), absoluteTrfPath).replace(/\\/g, '/');
-
-  console.log(`[${jobId}] Iniciando estabilização | Perfil: ${profileKey} | Arquivo: ${req.file.originalname}`);
+  console.log(`[${jobId}] Iniciando estabilização | Perfil: ${profileKey} | Passes: ${passes} | Arquivo: ${req.file.originalname}`);
 
   let totalDuration = 0;
   try {
@@ -172,86 +174,108 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   const d = profile.detect;
   const t = profile.transform;
 
-  const detectFilter = `vidstabdetect=stepsize=${d.stepsize}:shakiness=${d.shakiness}:accuracy=${d.accuracy}:mincontrast=${d.mincontrast}:result=${relativeTrfPath}`;
-  const transformFilter = `vidstabtransform=input=${relativeTrfPath}:smoothing=${t.smoothing}:optalgo=${t.optalgo}:interpol=${t.interpol}:crop=${t.crop}:optzoom=${t.optzoom}:zoomspeed=${t.zoomspeed},unsharp=5:5:0.8:3:3:0.4`;
+  // Polish filters: denoise + sharpen on final pass only
+  const finalFilters = profile.denoise
+    ? ',hqdn3d=4:3:6:4.5,unsharp=5:5:0.8:3:3:0.4'
+    : ',unsharp=5:5:0.8:3:3:0.4';
 
-  // ---- PASSO 1: Detectar movimentos ----
-  sendProgress(jobId, { stage: 'detecting', percent: 0, step: 1, totalSteps: 2 });
+  const tempFiles = [inputPath];
 
-  const step1 = ffmpeg(inputPath)
-    .outputOptions([
-      `-vf ${detectFilter}`,
-      '-f null'
-    ]);
+  try {
+    let currentInput = inputPath;
 
-  step1.on('start', (cmd) => console.log(`[${jobId}] Passo 1 CMD:`, cmd));
+    for (let pass = 1; pass <= passes; pass++) {
+      const trfFileName = `${filename}_pass${pass}.trf`;
+      const absoluteTrfPath = path.join(uploadDir, trfFileName);
+      // No Windows, caminhos absolutos com "C:/" falham dentro de filtros do FFmpeg.
+      const relativeTrfPath = path.relative(process.cwd(), absoluteTrfPath).replace(/\\/g, '/');
+      tempFiles.push(absoluteTrfPath);
 
-  step1.on('stderr', (line) => {
-    const progress = parseProgress(line, totalDuration);
-    if (progress) {
-      sendProgress(jobId, {
-        stage: 'detecting',
-        step: 1,
-        totalSteps: 2,
-        ...progress
-      });
-    }
-  });
+      const detectStepNum = pass * 2 - 1;
+      const transformStepNum = pass * 2;
+      const isLastPass = pass === passes;
 
-  step1.on('error', (err) => {
-    console.error(`[${jobId}] Erro Passo 1:`, err.message);
-    sendProgress(jobId, { stage: 'error', error: 'Erro na análise de estabilização.' });
-    cleanup(inputPath, absoluteTrfPath);
-  });
+      const passOutput = isLastPass
+        ? outputPath
+        : path.join(uploadDir, `${jobId}_intermediate_p${pass}.mp4`);
+      if (!isLastPass) tempFiles.push(passOutput);
 
-  step1.on('end', () => {
-    console.log(`[${jobId}] Passo 1 concluído.`);
-    sendProgress(jobId, { stage: 'transforming', percent: 0, step: 2, totalSteps: 2 });
+      // Progressive smoothing: each pass targets increasingly fine tremors
+      // Pass 1/3 = 33% smoothing (big shakes), Pass 2/3 = 66% (medium), Pass 3/3 = 100% (micro-tremors)
+      const passSmoothing = passes > 1 ? Math.max(10, Math.round(t.smoothing * (pass / passes))) : t.smoothing;
 
-    // ---- PASSO 2: Aplicar transformação ----
-    const step2 = ffmpeg(inputPath)
-      .outputOptions([
-        `-vf ${transformFilter}`,
-        `-c:v libx264`,
-        `-preset ${profile.encode.preset}`,
-        `-crf ${profile.encode.crf}`,
-        `-c:a copy`
-      ])
-      .save(outputPath);
+      const detectFilter = `vidstabdetect=stepsize=${d.stepsize}:shakiness=${d.shakiness}:accuracy=${d.accuracy}:mincontrast=${d.mincontrast}:result=${relativeTrfPath}`;
+      const extraFilters = isLastPass ? finalFilters : ',unsharp=5:5:0.5:3:3:0.3';
+      const transformFilter = `vidstabtransform=input=${relativeTrfPath}:smoothing=${passSmoothing}:optalgo=${t.optalgo}:interpol=${t.interpol}:crop=${t.crop}:optzoom=${t.optzoom}:zoomspeed=${t.zoomspeed}${extraFilters}`;
 
-    step2.on('start', (cmd) => console.log(`[${jobId}] Passo 2 CMD:`, cmd));
+      // ---- DETECT ----
+      sendProgress(jobId, { stage: 'detecting', percent: 0, step: detectStepNum, totalSteps, pass, totalPasses: passes });
 
-    step2.on('stderr', (line) => {
-      const progress = parseProgress(line, totalDuration);
-      if (progress) {
-        sendProgress(jobId, {
-          stage: 'transforming',
-          step: 2,
-          totalSteps: 2,
-          ...progress
+      await new Promise((resolve, reject) => {
+        const cmd = ffmpeg(currentInput)
+          .outputOptions([`-vf ${detectFilter}`, '-f null']);
+
+        cmd.on('start', (c) => console.log(`[${jobId}] Passo ${detectStepNum}/${totalSteps} CMD:`, c));
+        cmd.on('stderr', (line) => {
+          const progress = parseProgress(line, totalDuration);
+          if (progress) {
+            sendProgress(jobId, { stage: 'detecting', step: detectStepNum, totalSteps, pass, totalPasses: passes, ...progress });
+          }
         });
-      }
-    });
-
-    step2.on('error', (err) => {
-      console.error(`[${jobId}] Erro Passo 2:`, err.message);
-      sendProgress(jobId, { stage: 'error', error: 'Erro ao aplicar estabilização.' });
-      cleanup(inputPath, absoluteTrfPath);
-    });
-
-    step2.on('end', () => {
-      console.log(`[${jobId}] Estabilização completa!`);
-      sendProgress(jobId, {
-        stage: 'done',
-        percent: 100,
-        url: `/processed/${filename}`,
-        originalName: req.file.originalname
+        cmd.on('error', (err) => reject(err));
+        cmd.on('end', () => resolve());
+        cmd.save('-');
       });
-      cleanup(inputPath, absoluteTrfPath);
-    });
-  });
 
-  step1.save('-'); // Executa passo 1
+      console.log(`[${jobId}] Passo ${detectStepNum}/${totalSteps} concluído.`);
+
+      // ---- TRANSFORM ----
+      sendProgress(jobId, { stage: 'transforming', percent: 0, step: transformStepNum, totalSteps, pass, totalPasses: passes });
+
+      // Intermediate passes use CRF 14 to preserve maximum quality for the next pass
+      const encodeCrf = isLastPass ? profile.encode.crf : 14;
+      const encodePreset = isLastPass ? profile.encode.preset : 'medium';
+
+      await new Promise((resolve, reject) => {
+        const cmd = ffmpeg(currentInput)
+          .outputOptions([
+            `-vf ${transformFilter}`,
+            `-c:v libx264`,
+            `-preset ${encodePreset}`,
+            `-crf ${encodeCrf}`,
+            `-c:a copy`
+          ]);
+
+        cmd.on('start', (c) => console.log(`[${jobId}] Passo ${transformStepNum}/${totalSteps} CMD:`, c));
+        cmd.on('stderr', (line) => {
+          const progress = parseProgress(line, totalDuration);
+          if (progress) {
+            sendProgress(jobId, { stage: 'transforming', step: transformStepNum, totalSteps, pass, totalPasses: passes, ...progress });
+          }
+        });
+        cmd.on('error', (err) => reject(err));
+        cmd.on('end', () => resolve());
+        cmd.save(passOutput);
+      });
+
+      console.log(`[${jobId}] Passo ${transformStepNum}/${totalSteps} concluído.`);
+      currentInput = passOutput;
+    }
+
+    console.log(`[${jobId}] Estabilização completa!`);
+    sendProgress(jobId, {
+      stage: 'done',
+      percent: 100,
+      url: `/processed/${filename}`,
+      originalName: req.file.originalname
+    });
+    cleanup(...tempFiles.filter(f => f !== outputPath));
+
+  } catch (err) {
+    console.error(`[${jobId}] Erro na estabilização:`, err.message);
+    sendProgress(jobId, { stage: 'error', error: 'Erro na estabilização do vídeo.' });
+    cleanup(...tempFiles);
+  }
 });
 
 // ============================================================

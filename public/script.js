@@ -174,12 +174,17 @@ function connectSSE(jobId) {
             case 'detecting':
                 progressBar.classList.remove('processing');
                 progressStats.style.display = 'flex';
-                statusText.innerText = 'Analisando movimentos...';
-                statusSubtext.innerText = 'Detectando tremidas e padrões de movimento no vídeo.';
+                if (data.pass && data.pass > 1) {
+                    statusText.innerText = `Refinando análise (passada ${data.pass}/${data.totalPasses})...`;
+                    statusSubtext.innerText = 'Varredura adicional para capturar tremores residuais.';
+                } else {
+                    statusText.innerText = 'Analisando movimentos...';
+                    statusSubtext.innerText = 'Detectando tremidas e padrões de movimento no vídeo.';
+                }
                 progressStep.innerText = `Passo ${data.step} de ${data.totalSteps}`;
                 if (data.percent !== undefined) {
-                    // Overall progress: step 1 = 0-50%
-                    const overall = Math.round(data.percent * 0.5);
+                    const stepWeight = 100 / data.totalSteps;
+                    const overall = Math.round((data.step - 1) * stepWeight + data.percent * stepWeight / 100);
                     progressBar.style.width = overall + '%';
                     progressPercent.innerText = overall + '%';
                 }
@@ -189,12 +194,20 @@ function connectSSE(jobId) {
             case 'transforming':
                 progressBar.classList.remove('processing');
                 progressStats.style.display = 'flex';
-                statusText.innerText = 'Aplicando estabilização...';
-                statusSubtext.innerText = 'Transformando frames com correção de movimento.';
+                if (data.pass && data.pass === data.totalPasses && data.totalPasses > 1) {
+                    statusText.innerText = 'Polimento final...';
+                    statusSubtext.innerText = 'Estabilização de precisão + redução de ruído.';
+                } else if (data.pass && data.pass < data.totalPasses) {
+                    statusText.innerText = `Estabilizando (passada ${data.pass}/${data.totalPasses})...`;
+                    statusSubtext.innerText = 'Removendo tremidas do vídeo.';
+                } else {
+                    statusText.innerText = 'Aplicando estabilização...';
+                    statusSubtext.innerText = 'Transformando frames com correção de movimento.';
+                }
                 progressStep.innerText = `Passo ${data.step} de ${data.totalSteps}`;
                 if (data.percent !== undefined) {
-                    // Overall progress: step 2 = 50-100%
-                    const overall = 50 + Math.round(data.percent * 0.5);
+                    const stepWeight = 100 / data.totalSteps;
+                    const overall = Math.round((data.step - 1) * stepWeight + data.percent * stepWeight / 100);
                     progressBar.style.width = overall + '%';
                     progressPercent.innerText = overall + '%';
                 }
