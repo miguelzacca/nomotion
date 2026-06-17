@@ -52,6 +52,11 @@ const PROFILES = {
     detect: { stepsize: 4, shakiness: 10, accuracy: 15, mincontrast: 0.2 },
     transform: { smoothing: 30, interpol: 'bicubic', optzoom: 1, zoomspeed: 0.2, crop: 'black', optalgo: 'gauss' },
     encode: { preset: 'slow', crf: 18 }
+  },
+  extreme: {
+    detect: { stepsize: 4, shakiness: 10, accuracy: 15, mincontrast: 0.2 },
+    transform: { smoothing: 90, interpol: 'bicubic', optzoom: 1, zoomspeed: 0.2, crop: 'black', optalgo: 'gauss' },
+    encode: { preset: 'slow', crf: 18 }
   }
 };
 
