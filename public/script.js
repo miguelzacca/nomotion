@@ -214,6 +214,21 @@ function connectSSE(jobId) {
                 updateStats(data);
                 break;
 
+            case 'interpolating':
+                progressBar.classList.remove('processing');
+                progressStats.style.display = 'flex';
+                statusText.innerText = 'Gerando frames intermediários (60fps)...';
+                statusSubtext.innerText = 'Suavizando movimentos usando Fluxo Óptico.';
+                progressStep.innerText = `Passo ${data.step} de ${data.totalSteps}`;
+                if (data.percent !== undefined) {
+                    const stepWeight = 100 / data.totalSteps;
+                    const overall = Math.round((data.step - 1) * stepWeight + data.percent * stepWeight / 100);
+                    progressBar.style.width = overall + '%';
+                    progressPercent.innerText = overall + '%';
+                }
+                updateStats(data);
+                break;
+
             case 'done':
                 progressBar.style.width = '100%';
                 progressPercent.innerText = '100%';

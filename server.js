@@ -159,7 +159,7 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   const profileKey = req.body.quality || 'max';
   const profile = PROFILES[profileKey] || PROFILES.max;
   const passes = profile.passes || 1;
-  const totalSteps = passes * 2;
+  const totalSteps = passes * 2 + (profile.fps60 ? 1 : 0);
 
   const inputPath = req.file.path;
   const filename = path.basename(inputPath);
@@ -182,10 +182,9 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
   const d = profile.detect;
   const t = profile.transform;
 
-  // Polish filters: denoise + optical flow 60fps + sharpen on final pass only
+  // Polish filters: denoise + sharpen on final stabilization pass
   let finalFilters = '';
   if (profile.denoise) finalFilters += ',hqdn3d=4:3:6:4.5';
-  if (profile.fps60) finalFilters += ',minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1';
   finalFilters += ',unsharp=5:5:0.8:3:3:0.4';
 
   const tempFiles = [inputPath];
@@ -203,11 +202,12 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
       const detectStepNum = pass * 2 - 1;
       const transformStepNum = pass * 2;
       const isLastPass = pass === passes;
+      const isFinalOutput = isLastPass && !profile.fps60;
 
-      const passOutput = isLastPass
+      const passOutput = isFinalOutput
         ? outputPath
         : path.join(uploadDir, `${jobId}_intermediate_p${pass}.mp4`);
-      if (!isLastPass) tempFiles.push(passOutput);
+      if (!isFinalOutput) tempFiles.push(passOutput);
 
       // Progressive smoothing: each pass targets increasingly fine tremors
       // Pass 1/3 = 33% smoothing (big shakes), Pass 2/3 = 66% (medium), Pass 3/3 = 100% (micro-tremors)
@@ -271,7 +271,38 @@ app.post('/api/stabilize', upload.single('video'), async (req, res) => {
       currentInput = passOutput;
     }
 
-    console.log(`[${jobId}] Estabilização completa!`);
+    // ---- OPTIONAL: Optical Flow 60fps interpolation ----
+    if (profile.fps60) {
+      const interpolateStepNum = totalSteps;
+      console.log(`[${jobId}] Iniciando interpolação 60fps...`);
+      sendProgress(jobId, { stage: 'interpolating', percent: 0, step: interpolateStepNum, totalSteps });
+
+      await new Promise((resolve, reject) => {
+        const cmd = ffmpeg(currentInput)
+          .outputOptions([
+            `-vf minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1`,
+            `-c:v libx264`,
+            `-preset ${profile.encode.preset}`,
+            `-crf ${profile.encode.crf}`,
+            `-c:a copy`
+          ]);
+
+        cmd.on('start', (c) => console.log(`[${jobId}] Interpolação CMD:`, c));
+        cmd.on('stderr', (line) => {
+          const progress = parseProgress(line, totalDuration);
+          if (progress) {
+            sendProgress(jobId, { stage: 'interpolating', step: interpolateStepNum, totalSteps, ...progress });
+          }
+        });
+        cmd.on('error', (err) => reject(err));
+        cmd.on('end', () => resolve());
+        cmd.save(outputPath);
+      });
+
+      console.log(`[${jobId}] Interpolação 60fps concluída.`);
+    }
+
+    console.log(`[${jobId}] Processamento completo!`);
     sendProgress(jobId, {
       stage: 'done',
       percent: 100,
